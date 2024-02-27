@@ -1,4 +1,3 @@
-f
 use libc::{sigaddset, sigemptyset, sigprocmask, SIGINT, SIG_BLOCK, SIG_UNBLOCK};
 use std::collections::HashSet;
 
