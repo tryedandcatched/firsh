@@ -1,3 +1,5 @@
+f
+use libc::{sigaddset, sigemptyset, sigprocmask, SIGINT, SIG_BLOCK, SIG_UNBLOCK};
 use std::collections::HashSet;
 
 mod colors;
@@ -27,6 +29,15 @@ fn is_folder(path: &str) -> bool {
 }
 
 fn main() {
+    unsafe {
+        // Create an empty signal mask
+        let mut mask: libc::sigset_t = std::mem::zeroed();
+        sigemptyset(&mut mask);
+        // Add the SIGINT signal to the signal mask
+        sigaddset(&mut mask, SIGINT);
+        // Block the SIGINT signal using the signal mask
+        sigprocmask(SIG_BLOCK, &mask as *const libc::sigset_t, std::ptr::null_mut());
+    }
     let line_config = rustyline::config::Config::builder()
         .history_ignore_space(true)
         .completion_type(rustyline::config::CompletionType::List)
