@@ -1,9 +1,11 @@
 use libc::{sigaddset, sigemptyset, sigprocmask, SIGINT, SIG_BLOCK, SIG_UNBLOCK};
 use std::collections::HashSet;
+use termion::color;
 
 mod colors;
 mod detect_env;
 mod helper;
+mod llama;
 mod ping;
 mod r#struct;
 mod versions;
@@ -35,7 +37,11 @@ fn main() {
         // Add the SIGINT signal to the signal mask
         sigaddset(&mut mask, SIGINT);
         // Block the SIGINT signal using the signal mask
-        sigprocmask(SIG_BLOCK, &mask as *const libc::sigset_t, std::ptr::null_mut());
+        sigprocmask(
+            SIG_BLOCK,
+            &mask as *const libc::sigset_t,
+            std::ptr::null_mut(),
+        );
     }
     let line_config = rustyline::config::Config::builder()
         .history_ignore_space(true)
@@ -65,10 +71,7 @@ fn main() {
         rustyline::Cmd::HistorySearchForward,
     );
 
-    rl.bind_sequence(
-        rustyline::KeyEvent::ctrl('e'),
-        rustyline::Cmd::CompleteHint
-    );
+    rl.bind_sequence(rustyline::KeyEvent::ctrl('e'), rustyline::Cmd::CompleteHint);
 
     rl.bind_sequence(rustyline::KeyEvent::ctrl('c'), rustyline::Cmd::Abort);
 
@@ -85,11 +88,13 @@ prompt = "(green)[(red)(pwd)(green)](blue)\n)"
 
 [shell]
 pwd = "/home/wyene/mhome"
-aliases = {ls = "ls --color=always",
-            ping = "ping -c 1",
-            ll = "ls -l --color=always",
-            la = "ls -a --color=always",
-}"#,
+aliases = {ls = "ls --color=always", ping = "ping -c 1", ll = "ls -l --color=always", la = "ls -a --color=always"}
+
+#[llama]
+#llama_path = "your path"
+#model_path = "your path"
+#prompt = "you'r an AI assistant that work inside an terminal the user will ask for help (probably command), you will only answer by 1 line of bash code. you need to make it the more concise way possible do not explain do not format just write the asked command no more no less; user problem: "
+"#,
         )
         .unwrap();
     }
@@ -122,7 +127,6 @@ aliases = {ls = "ls --color=always",
                     format!("cd {}", file_name.to_str().unwrap()).as_str(),
                 ));
             }
-
         }
 
         let hlper = helper::DIYHinter {
@@ -169,6 +173,26 @@ aliases = {ls = "ls --color=always",
                             }
                         }
                     }
+                }
+                if line.starts_with("#") {
+                    if config.clone().llama.is_none() {
+                        println!(
+                            "{}",
+                            colors::translate_to_color(
+                                "Please set the llama model path in shell.toml".to_string()
+                            )
+                        );
+                        continue;
+                    }
+                    let prompt = format!(
+                        "{}\"{}\". You'r answer as an AI:",
+                        config.clone().llama.unwrap().prompt,
+                        line.replace("#", "")
+                    );
+                    let llama_path = config.clone().llama.unwrap().llama_path;
+                    let model_path = config.clone().llama.unwrap().model_path;
+                    let llama_output = llama::execute(&llama_path, &model_path, &prompt);
+                    println!("{}", colors::translate_to_color(llama_output));
                 } else {
                     if config.clone().shell.unwrap().aliases.is_some() {
                         let aliases = config.clone().shell.unwrap().aliases.unwrap();

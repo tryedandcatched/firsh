@@ -15,6 +15,7 @@ pub struct command {
 pub struct Config {
     pub style: Style,
     pub shell: Option<Shell>,
+    pub llama: Option<Llama>
 }
 
 #[derive(Deserialize, Clone)]
@@ -65,4 +66,9 @@ impl programming_language {
 }
 
 
-
+#[derive(Deserialize, Clone)]
+pub struct Llama {
+    pub model_path: String,
+    pub prompt: String,
+    pub llama_path: String, 
+}
