@@ -1,5 +1,6 @@
 use libc::{sigaddset, sigemptyset, sigprocmask, SIGINT, SIG_BLOCK, SIG_UNBLOCK};
 use std::collections::HashSet;
+use std::process;
 use termion::color;
 
 mod colors;
@@ -107,6 +108,34 @@ aliases = {ls = "ls --color=always", ping = "ping -c 1", ll = "ls -l --color=alw
     }
 
     let mut complete_list = HashSet::new();
+    let all_file = Command::new("find")
+        .arg(".")
+        .output()
+        .expect("failed to execute process");
+    let output = String::from_utf8(all_file.stdout.clone()).unwrap();
+    for line in output.lines() {
+        let line = line.replace("./", "cd ");
+        complete_list.insert(helper::CommandHint::new(
+            &line,
+            &line,
+        ));
+    }
+
+    let path_dirs = env_var.get("PATH").unwrap();
+    for path in path_dirs.split(":") {
+        if is_folder(&path) {
+            for file_name in fs::read_dir(&path).unwrap() {
+                let file_name = file_name.unwrap();
+                let path = format!("{}", file_name.path().file_name().unwrap().to_str().unwrap());
+                complete_list.insert(helper::CommandHint::new(
+                &path,
+                &path,
+            ));
+
+            }
+        }
+    }
+
 
     if let Some(shell) = &config.shell {
         env_var.insert("PWD".to_string(), shell.pwd.to_string());
@@ -148,6 +177,7 @@ aliases = {ls = "ls --color=always", ping = "ping -c 1", ll = "ls -l --color=alw
         match readline {
             Ok(mut line) => {
                 rl.add_history_entry(line.as_str()).unwrap();
+                line = line.trim().to_string();
 
                 if line == "exit" || line == "quit" {
                     break;
@@ -194,6 +224,11 @@ aliases = {ls = "ls --color=always", ping = "ping -c 1", ll = "ls -l --color=alw
                     let llama_output = llama::execute(&llama_path, &model_path, &prompt);
                     println!("{}", colors::translate_to_color(llama_output));
                 } else {
+
+                    if line.len() < 1 {
+                        continue;
+                    }
+
                     if config.clone().shell.unwrap().aliases.is_some() {
                         let aliases = config.clone().shell.unwrap().aliases.unwrap();
                         if aliases.contains_key(line.as_str()) {
@@ -210,6 +245,9 @@ aliases = {ls = "ls --color=always", ping = "ping -c 1", ll = "ls -l --color=alw
                             for (key, value) in env_var.clone() {
                                 command.env(key, value);
                             }
+                            command.stdin(std::process::Stdio::inherit());
+                            command.stdout(std::process::Stdio::inherit());
+                            command.stderr(std::process::Stdio::inherit());
 
                             for arg in args {
                                 command.arg(arg);
@@ -219,7 +257,6 @@ aliases = {ls = "ls --color=always", ping = "ping -c 1", ll = "ls -l --color=alw
                             match status {
                                 Ok(status) => {
                                     if status.success() {
-                                        let _output = command.output().unwrap();
                                     }
                                 }
                                 Err(error) => {
