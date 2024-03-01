@@ -72,3 +72,30 @@ pub struct Llama {
     pub prompt: String,
     pub llama_path: String, 
 }
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct CommandLine {
+    pub process: String,
+    pub args: Vec<String>,
+
+}
+impl CommandLine {
+    pub fn new() -> CommandLine {
+        CommandLine {
+            process: String::new(),
+            args: Vec::new(),
+        }
+    }
+}
+
+pub struct prefix {
+    pub process: String,
+    pub WantFileType: WantFileType,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum WantFileType {
+    File,
+    Dir,
+    Unknown,
+}

@@ -1,0 +1,18 @@
+#V2
+# remove all js file in my directoy
+vi ~/shell.toml
+vi 
+cd ..
+vi shell.toml
+exit
+helix
+cd project
+cd firsh
+ls
+helix src/main.rs
+cargo build --release
+helix
+cargo build --release
+helix src/main.rs
+cargo build --release
+exit
